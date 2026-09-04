@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APIキー自動ローテーション 構成図</title>
+<style>
+  :root {
+    --text: #2c2c2c;
+    --text-sub: #777;
+    --border: #e6e6e6;
+    --accent: #0068B7;
+    --rotate: #e8820c;
+    --rotate-dark: #b35a00;
+    --accent-dark: #0d4e86;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+    color: var(--text);
+    background: #fafbfc;
+    line-height: 1.8;
+    font-size: 15px;
+    padding: 40px 20px 80px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .sub { color: var(--text-sub); font-size: 14px; margin-bottom: 36px; }
+
+  h2 {
+    font-size: 18px; font-weight: 700;
+    margin: 40px 0 16px;
+    padding-left: 12px;
+    border-left: 4px solid var(--accent);
+  }
+  h2 .cnt { font-size: 13px; color: var(--text-sub); font-weight: 400; margin-left: 8px; }
+  h2.rot { border-left-color: var(--rotate); }
+
+  /* ===== 前提ボックス ===== */
+  .premise {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 32px;
+    font-size: 14px;
+  }
+  .premise .p-title { font-weight: 700; margin-bottom: 6px; }
+  .premise ul { margin-left: 20px; }
+  .premise li { margin-bottom: 4px; }
+
+  /* ===== SVG図（構成要素） ===== */
+  .diagram-scroll { overflow-x: auto; background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 8px; }
+  .diagram-scroll svg { display: block; min-width: 880px; width: 100%; height: auto; }
+  svg text { font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif; }
+  svg .zone-t { font-size: 15px; font-weight: 700; }
+  svg .n-title { font-size: 15px; font-weight: 700; fill: #2c2c2c; }
+  svg .n-desc { font-size: 12px; fill: #777; }
+  svg .bdg { font-size: 11px; font-weight: 700; }
+
+  /* ===== フロー表 ===== */
+  .flow-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--border); border-radius: 12px; }
+  table.flow { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13.5px; }
+  table.flow th, table.flow td { padding: 0; vertical-align: top; }
+  table.flow thead th {
+    color: #fff; text-align: center; padding: 12px 14px;
+    border-right: 1px solid rgba(255,255,255,.25);
+  }
+  table.flow thead th:last-child { border-right: none; }
+  table.flow thead th .t { font-size: 15px; font-weight: 700; display: block; }
+  table.flow thead th .s { font-size: 11.5px; font-weight: 400; opacity: .85; display: block; margin-top: 2px; }
+  table.flow.rot thead th { background: var(--rotate-dark); }
+  table.flow.call thead th { background: var(--accent-dark); }
+  table.flow thead th.corner {
+    background: #223047; font-size: 12.5px; width: 118px; min-width: 118px;
+  }
+  table.flow tbody th {
+    background: #fff; font-size: 13px; font-weight: 700; color: #444;
+    text-align: center; vertical-align: middle; padding: 14px 10px;
+    border-top: 1px solid var(--border); border-right: 1px solid var(--border);
+  }
+  table.flow tbody td {
+    border-top: 1px solid var(--border); border-right: 1px solid var(--border);
+    padding: 12px;
+  }
+  table.flow tbody td:last-child { border-right: none; }
+  .cell {
+    border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.7; height: 100%;
+  }
+  .cell.blue { background: #e8f1fa; }
+  .cell.green { background: #eaf6ee; }
+  .cell b { font-size: 13.5px; }
+  .pill {
+    display: inline-block; font-size: 12px; font-weight: 700;
+    border-radius: 999px; padding: 1px 12px; margin: 2px 2px 2px 0;
+    background: #fff; border: 1.5px solid #ccc;
+  }
+  .pill.aws { color: #1a5a8c; border-color: #b9d4ea; background: #eef5fb; }
+  .pill.bbl { color: #6b3fa6; border-color: #cdbbe8; background: #f3eefb; }
+  .pill.next-r { color: var(--rotate-dark); border-color: #f0c896; background: #fdf3e6; }
+  .pill.next-b { color: var(--accent-dark); border-color: #a8cbe8; background: #e8f1fa; }
+  .scroll-note { text-align: right; font-size: 12px; color: var(--text-sub); margin-top: 6px; }
+
+  /* ===== セキュリティ要件 ===== */
+  .sec-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .sec {
+    background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .sec.warn { border-left-color: var(--rotate); }
+  .sec .s-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 7px; }
+  .sec .s-body { font-size: 13px; color: #555; }
+
+  /* ===== 比較表 ===== */
+  .table-wrap { overflow-x: auto; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 13.5px; background: #fff; }
+  table.cmp th, table.cmp td { border: 1px solid var(--border); padding: 10px 13px; text-align: left; vertical-align: top; }
+  table.cmp th { background: #f0f6fb; color: var(--accent); font-weight: 700; }
+  .ok { color: #1c7a3e; font-weight: 700; }
+  .ng { color: #c0392b; font-weight: 700; }
+  code {
+    font-family: Menlo, Consolas, monospace; font-size: 12.5px;
+    background: #f5f5f5; border-radius: 4px; padding: 1px 6px;
+  }
+  .note { font-size: 12.5px; color: var(--text-sub); margin-top: 10px; }
+
+  .refs { font-size: 12px; color: var(--text-sub); margin-top: 48px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .refs a { color: var(--accent); }
+
+  @media (max-width: 720px) {
+    .sec-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>APIキー 自動ローテーション 構成図</h1>
+  <div class="sub">Webhookでキー更新を検知し、Bubble側の保管キーを自動で差し替える構成（DB方式）</div>
+
+  <div class="premise">
+    <div class="p-title">なぜ構成変更が必要か</div>
+    <ul>
+      <li>現在のキーは API Connector の<strong>エディタ設定（Private key in header）</strong>として保存されており、<strong>実行時に外部から書き換える公開APIが存在しない</strong>ため、自動ローテーション不可。</li>
+      <li>Bubbleには「APIで更新できるネイティブのシークレット保管庫」がない（2025年追加の Secrets Scanner は<em>漏洩検知</em>機能であり保管庫ではない）。</li>
+      <li>→ キーを<strong>エディタ設定からデータベースのレコード</strong>に移し、API Connector 側は<strong>動的パラメータ</strong>で受け取る構成に変更する。</li>
+    </ul>
+  </div>
+
+  <h2>構成要素</h2>
+  <div class="diagram-scroll">
+  <svg viewBox="0 0 1060 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="構成要素の配置図">
+    <!-- ゾーン -->
+    <rect x="15" y="20" width="490" height="460" rx="16" fill="#eef5fb" stroke="#b9d4ea"/>
+    <rect x="555" y="20" width="490" height="460" rx="16" fill="#f3eefb" stroke="#cdbbe8"/>
+    <text x="45" y="60" class="zone-t" fill="#1a5a8c">☁️ ブラザー / AWS 側</text>
+    <text x="585" y="60" class="zone-t" fill="#6b3fa6">🫧 Bubble 側</text>
+
+    <!-- 左ノード -->
+    <rect x="60" y="90" width="400" height="92" rx="12" fill="#fff" stroke="#b9d4ea" stroke-width="1.5"/>
+    <text x="80" y="130" class="n-title">🔑 APIキー管理（Usage Plan）</text>
+    <text x="80" y="158" class="n-desc">新旧キーの同時有効化が可能（併用期間を確保）</text>
+
+    <rect x="60" y="222" width="400" height="92" rx="12" fill="#fff" stroke="#b9d4ea" stroke-width="1.5"/>
+    <text x="80" y="262" class="n-title">📤 Webhook 送信</text>
+    <text x="80" y="290" class="n-desc">Lambda / EventBridge（キー更新をトリガーに発火）</text>
+
+    <rect x="60" y="354" width="400" height="92" rx="12" fill="#fff" stroke="#b9d4ea" stroke-width="1.5"/>
+    <text x="80" y="394" class="n-title">🛡️ API Gateway</text>
+    <text x="80" y="422" class="n-desc">x-api-key ヘッダーで認証（現行と同じ）</text>
+
+    <!-- 右ノード -->
+    <rect x="600" y="90" width="400" height="92" rx="12" fill="#fff" stroke="#cdbbe8" stroke-width="1.5"/>
+    <rect x="898" y="102" width="86" height="24" rx="12" fill="#e9f7ee" stroke="#a9dcbc"/>
+    <text x="941" y="119" class="bdg" fill="#1c7a3e" text-anchor="middle">サーバー側</text>
+    <text x="620" y="136" class="n-title">📥 Backend Workflow（受け口）</text>
+    <text x="620" y="162" class="n-desc">シークレット／署名を検証し、正規の通知のみ受理</text>
+
+    <rect x="600" y="222" width="400" height="92" rx="12" fill="#fffdf3" stroke="#d9c24a" stroke-width="1.5"/>
+    <rect x="874" y="234" width="110" height="24" rx="12" fill="#fdeaea" stroke="#f0b6b6"/>
+    <text x="929" y="251" class="bdg" fill="#c0392b" text-anchor="middle">Privacy全閉じ</text>
+    <text x="620" y="268" class="n-title">🗄️ ApiCredential（DB）</text>
+    <text x="620" y="294" class="n-desc">キーの唯一の保管場所（クライアントから不可視）</text>
+
+    <rect x="600" y="354" width="400" height="92" rx="12" fill="#fff" stroke="#cdbbe8" stroke-width="1.5"/>
+    <rect x="858" y="366" width="126" height="24" rx="12" fill="#e9f7ee" stroke="#a9dcbc"/>
+    <text x="921" y="383" class="bdg" fill="#1c7a3e" text-anchor="middle">Backend WF限定</text>
+    <text x="620" y="400" class="n-title">🔌 API Connector</text>
+    <text x="620" y="426" class="n-desc">x-api-key は動的パラメータで実行時に差し込み</text>
+  </svg>
+  </div>
+
+  <h2 class="rot">フロー1：ローテーション（キー更新時）<span class="cnt">3ステップ</span></h2>
+  <div class="flow-wrap">
+    <table class="flow rot">
+      <thead>
+        <tr>
+          <th class="corner">ステップ →</th>
+          <th><span class="t">1. キーをローテーション</span><span class="s">発生時のみ</span></th>
+          <th><span class="t">2. Webhook POST</span><span class="s">AWS → Bubble</span></th>
+          <th><span class="t">3. 検証 → キー上書き</span><span class="s">Bubble内で完結</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>どこで？</th>
+          <td><span class="pill aws">☁️ AWS</span></td>
+          <td><span class="pill aws">☁️ AWS</span> → <span class="pill bbl">🫧 Bubble</span></td>
+          <td><span class="pill bbl">🫧 Bubble</span>（サーバー側）</td>
+        </tr>
+        <tr>
+          <th>何が起きる？</th>
+          <td>
+            <div class="cell blue"><b>ブラザーが新キーを発行</b><br>Usage Plan に新旧キーを併登録。旧キーは有効なまま維持する。</div>
+          </td>
+          <td>
+            <div class="cell blue"><b>Lambda / EventBridge が発火</b><br>新キー＋共有シークレット（または署名）を Backend Workflow のエンドポイントへPOST。</div>
+          </td>
+          <td>
+            <div class="cell blue"><b>Backend WF が検証して上書き</b><br>シークレット／署名を照合し、正規の通知なら ApiCredential レコードを新キーで上書き。結果をレスポンスで返す。</div>
+          </td>
+        </tr>
+        <tr>
+          <th>次に<br>どうなる？</th>
+          <td>
+            <div class="cell green">→ <span class="pill next-r">2. Webhook POST</span> が自動発火</div>
+          </td>
+          <td>
+            <div class="cell green">→ <span class="pill next-r">3. 検証 → キー上書き</span><br>検証NGなら拒否（キーは変更されない）</div>
+          </td>
+          <td>
+            <div class="cell green"><b>終端</b><br>AWS側がレスポンスで成功を確認してから<b>旧キーを無効化</b>。以降の呼び出しは自動的に新キーになる。</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="scroll-note">※ 画面が狭い場合は表を横にスクロールできます</div>
+
+  <h2>フロー2：通常のAPI呼び出し<span class="cnt">2ステップ</span></h2>
+  <div class="flow-wrap">
+    <table class="flow call">
+      <thead>
+        <tr>
+          <th class="corner">ステップ →</th>
+          <th><span class="t">1. 最新キーを取得</span><span class="s">毎回の呼び出しで実行</span></th>
+          <th><span class="t">2. x-api-key を付けて呼び出し</span><span class="s">Bubble → AWS</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>どこで？</th>
+          <td><span class="pill bbl">🫧 Bubble</span>（Backend WF）</td>
+          <td><span class="pill bbl">🫧 Bubble</span> → <span class="pill aws">☁️ AWS</span></td>
+        </tr>
+        <tr>
+          <th>何が起きる？</th>
+          <td>
+            <div class="cell blue"><b>ApiCredential からキーを読込</b><br>Privacy全閉じのため、ignore privacy rules を有効にした Backend WF でのみ読める。</div>
+          </td>
+          <td>
+            <div class="cell blue"><b>API Connector を実行</b><br>動的パラメータにキーを差し込み、API Gateway を呼び出す。</div>
+          </td>
+        </tr>
+        <tr>
+          <th>次に<br>どうなる？</th>
+          <td>
+            <div class="cell green">→ <span class="pill next-b">2. API呼び出し</span> へ</div>
+          </td>
+          <td>
+            <div class="cell green"><b>終端</b><br>常にDBの最新キーで認証されるため、ローテーション後も改修なしで通り続ける。</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="scroll-note">※ 画面が狭い場合は表を横にスクロールできます</div>
+
+  <h2>セキュリティ要件</h2>
+  <div class="sec-grid">
+    <div class="sec">
+      <div class="s-title">🔒 Privacy Rules を全閉じ（必須）</div>
+      <div class="s-body">ApiCredential は "Everyone else" の検索・表示チェックをすべてOFF。値がクライアントに送信されなくなるため、開発者モード（<code>debug_mode</code>）・コンソール・Data APIのいずれからも見えない。あわせてこのDataTypeのData APIも無効化しておく。</div>
+    </div>
+    <div class="sec">
+      <div class="s-title">🖥️ サーバー側でのみ使用（必須）</div>
+      <div class="s-body">キーの読み取りとAPI呼び出しは Backend workflow（ignore privacy rules）だけで行う。API Connectorの動的パラメータはprivate指定不可のため、クライアント側WFから呼ぶと値がブラウザの通信に載る。</div>
+    </div>
+    <div class="sec warn">
+      <div class="s-title">✍️ Webhook受け口の認証（必須・方式選定）</div>
+      <div class="s-body">新キーが流れるため受け口の認証は必須。<strong>①共有シークレットヘッダーをWF条件で照合</strong>（最低限・実装容易）、<strong>②HMAC署名検証</strong>（推奨・要cryptoプラグイン）。<br>※BubbleのワークスペースAPIトークンは全権限を持つため、ブラザーへの共有は不可。</div>
+    </div>
+    <div class="sec warn">
+      <div class="s-title">♻️ 新旧キー併用期間（推奨）</div>
+      <div class="s-body">API Gateway の Usage Plan に新旧キーを併登録し、Bubble側の更新完了を確認してから旧キーを無効化。切替時のダウンタイムをゼロにする。更新成否をWebhookレスポンスで返すとAWS側から確認可能。</div>
+    </div>
+  </div>
+
+  <h2>現状方式との比較</h2>
+  <div class="table-wrap">
+    <table class="cmp">
+      <thead>
+        <tr><th>観点</th><th>現状（Connectorにキー直書き）</th><th>本構成（DBレコード方式）</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>自動ローテーション</td>
+          <td class="ng">✕ 不可（エディタ設定のため外部から更新不能）</td>
+          <td class="ok">◯ 可能（Webhook → レコード更新で完結）</td>
+        </tr>
+        <tr>
+          <td>クライアントからの可視性</td>
+          <td>見えない（private key はサーバー側で代入）</td>
+          <td class="ok">見えない（Privacy全閉じ＋Backend WF限定が前提）</td>
+        </tr>
+        <tr>
+          <td>エクスポート（.bubble）への漏洩</td>
+          <td class="ng">✕ <code>settings.secure</code> に平文で含まれる（検証済み）</td>
+          <td class="ok">◯ ランタイムデータのため含まれない</td>
+        </tr>
+        <tr>
+          <td>実装コスト</td>
+          <td>—（現状のまま）</td>
+          <td>API Connector改修＋Backend WF追加＋AWS側Webhook実装</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">※ DB方式に移行すると、エクスポートファイルにAPIキーが平文で残る問題（本アプリで検出済み）も同時に解消される。</div>
+
+  <h2>代替案：AWSプロキシ方式</h2>
+  <div class="sec" style="border-left-color:#888;">
+    <div class="s-title">🧩 Bubbleにキーを一切持たせない構成</div>
+    <div class="s-body">AWS側にプロキシ（Lambda等）を置き、Secrets Manager からキーを都度取得して API Gateway を呼ぶ。Bubble→プロキシ間は別の固定認証（例：Bubble専用の長期キー）で接続。ローテーションが完全にAWS内で完結し、<strong>Bubble側の改修・Webhook受け口・キー保管がすべて不要</strong>になる。ブラザーがAWSを管理している前提なら、運用上もっともシンプルで安全。</div>
+  </div>
+
+  <div class="refs">
+    参考：
+    <a href="https://manual.bubble.io/help-guides/security/api-security/api-connector-security" target="_blank">Bubble Docs - API Connector security</a> ／
+    <a href="https://manual.bubble.io/help-guides/data/the-database/protecting-data-with-privacy-rules" target="_blank">Bubble Docs - Privacy rules</a> ／
+    <a href="https://manual.bubble.io/help-guides/security/api-security/workflow-api-security" target="_blank">Bubble Docs - Workflow API security</a> ／
+    <a href="https://forum.bubble.io/t/new-feature-find-leaked-api-keys-with-the-secrets-scanner/384100" target="_blank">Bubble Forum - Secrets Scanner（2025）</a>
+  </div>
+
+</div>
+</body>
+</html>
