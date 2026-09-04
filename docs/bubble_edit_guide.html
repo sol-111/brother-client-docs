@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bubble編集ガイド</title>
+<style>
+  :root {
+    --text: #2c2c2c;
+    --text-sub: #777;
+    --border: #e6e6e6;
+    --accent: #0068B7;
+    --bg: #fff;
+    --sidebar-w: 260px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.9;
+    font-size: 16px;
+  }
+
+  /* ===== ヘッダー ===== */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    position: sticky;
+    top: 0;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(6px);
+    z-index: 10;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header .site-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  header .site-title span { color: var(--accent); }
+  #toc-toggle {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-sub);
+    font-size: 13px;
+    border-radius: 6px;
+    padding: 4px 12px;
+    cursor: pointer;
+    line-height: 1.6;
+  }
+  #toc-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ===== レイアウト ===== */
+  .container {
+    display: flex;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 48px 16px 120px;
+    gap: 40px;
+  }
+
+  /* ===== 左：目次 ===== */
+  nav.toc {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+  }
+  nav.toc .toc-inner {
+    position: sticky;
+    top: 96px;
+  }
+  nav.toc .toc-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-sub);
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+  }
+  nav.toc ol {
+    list-style: none;
+    border-left: 2px solid var(--border);
+  }
+  body.toc-collapsed nav.toc { display: none; }
+  nav.toc li a {
+    display: block;
+    padding: 8px 0 8px 16px;
+    font-size: 14px;
+    color: var(--text-sub);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    margin-left: -2px;
+    transition: color .2s, border-color .2s;
+  }
+  nav.toc li a:hover,
+  nav.toc li a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    font-weight: 600;
+  }
+  nav.toc ol.sub {
+    border-left: none;
+    margin-left: 16px;
+  }
+  nav.toc ol.sub li a {
+    padding: 4px 0 4px 14px;
+    font-size: 12.5px;
+    color: #999;
+  }
+
+  /* ===== 右：本文 ===== */
+  main.article {
+    flex: 1;
+    min-width: 0;
+  }
+  .article-header { margin-bottom: 56px; }
+  .article-header h1 {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .article-header .meta {
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+
+  details.chapter { margin-bottom: 40px; }
+  details.chapter > summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    font-size: 22px;
+    font-weight: 700;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    scroll-margin-top: 96px;
+  }
+  details.chapter > summary::-webkit-details-marker { display: none; }
+  details.chapter > summary .num {
+    color: var(--accent);
+    font-size: 15px;
+    margin-right: 10px;
+    font-weight: 700;
+  }
+  details.chapter > summary .chevron {
+    margin-left: auto;
+    color: var(--text-sub);
+    font-size: 14px;
+    transition: transform .2s;
+  }
+  details.chapter[open] summary .chevron { transform: rotate(90deg); }
+  details.chapter > summary:hover { color: var(--accent); }
+  details.chapter .chapter-body { padding-top: 24px; }
+  details.chapter p { margin-bottom: 16px; }
+
+  .step { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; scroll-margin-top: 96px; }
+  .step-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 8px 12px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    background: #fafafa;
+  }
+  .step-title .step-badge,
+  .step-title .tip-badge,
+  .step-title .check-badge {
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: 68px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 0;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    letter-spacing: 0.05em;
+  }
+  .step-title::-webkit-details-marker { display: none; }
+  .step-title:hover { background: #f0f6fb; }
+  .step-title .chevron {
+    margin-left: auto;
+    color: var(--text-sub);
+    font-size: 13px;
+    transition: transform .2s;
+  }
+  .step[open] .step-title .chevron { transform: rotate(90deg); }
+  .step[open] .step-title { border-bottom: 1px solid var(--border); }
+  .step figure.screenshot { margin: 20px 16px; }
+  .step-title .step-badge {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .step-title .tip-badge {
+    background: #fff8e6;
+    color: #a07408;
+    border-color: #e8c266;
+  }
+
+  .step-title .check-badge {
+    background: #fff;
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  figure.screenshot {
+    margin: 24px 0;
+  }
+  figure.screenshot img {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  figure.screenshot figcaption {
+    font-size: 13px;
+    color: var(--text-sub);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* ===== ブラウザ風モックアップ ===== */
+  .browser {
+    margin: 20px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+    background: #fff;
+  }
+  .browser-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f1f3f4;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .browser-dots { display: flex; gap: 6px; flex-shrink: 0; }
+  .browser-dots span {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  .browser-dots .r { background: #ff5f57; }
+  .browser-dots .y { background: #febc2e; }
+  .browser-dots .g { background: #28c840; }
+  .browser-url {
+    flex: 1;
+    min-width: 0;
+    background: #fff;
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 13px;
+    color: #444;
+    font-family: Menlo, Consolas, monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid #e0e0e0;
+  }
+  .browser-url .lock { color: #5f6368; margin-right: 6px; }
+  .browser img { display: block; width: 100%; height: auto; }
+
+  .table-wrap { overflow-x: auto; margin: 24px 0; }
+  table.map {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: nowrap;
+  }
+  table.map th, table.map td {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.map th {
+    background: #f0f6fb;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  table.map td.wrap { white-space: normal; min-width: 220px; }
+  table.map code {
+    font-family: Menlo, Consolas, monospace;
+    font-size: 13px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 1px 8px;
+    margin-right: 6px;
+  }
+  .tag.user { background: #e3f0fa; color: #0068B7; }
+  .tag.admin { background: #fdeaea; color: #c0392b; }
+  .tag.common { background: #eee; color: #555; }
+  .tag.dev { background: #fff3d6; color: #a07408; }
+  h3.table-label {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 32px 0 0;
+  }
+  .note {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-top: -12px;
+    margin-bottom: 24px;
+  }
+
+  .placeholder {
+    background: #fafafa;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 32px 24px;
+    text-align: center;
+    color: #bbb;
+    font-size: 14px;
+  }
+
+  /* ===== レスポンシブ ===== */
+  @media (max-width: 768px) {
+    .container { flex-direction: column; gap: 32px; padding-top: 24px; }
+    nav.toc { width: 100%; }
+    nav.toc .toc-inner { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button id="toc-toggle" title="目次を開閉">☰ 目次</button>
+  <div class="site-title"><span>■</span> Bubble編集ガイド</div>
+</header>
+
+<div class="container">
+
+  <!-- 左：目次 -->
+  <nav class="toc">
+    <div class="toc-inner">
+      <div class="toc-label">目次</div>
+      <ol>
+        <li><a href="#section-1">1. 初期表示</a></li>
+        <li>
+          <a href="#section-2">2. 作業ブランチ切り替え</a>
+          <ol class="sub">
+            <li><a href="#b-1">手順1 「Main」を選択</a></li>
+            <li><a href="#b-2">手順2 「dev」を選択</a></li>
+            <li><a href="#b-c1">👀 確認 「Main / dev」表記</a></li>
+          </ol>
+        </li>
+        <li><a href="#section-3">3. 画面対応表</a></li>
+        <li>
+          <a href="#section-4">4. 編集方法</a>
+          <ol class="sub">
+            <li><a href="#e-1">手順1 ページ名（index）を選択</a></li>
+            <li><a href="#e-2">手順2 編集対象の画面を選択</a></li>
+            <li><a href="#e-c1">👀 確認 画面名の切り替え</a></li>
+            <li><a href="#e-3">手順3 対象を表示状態にする</a></li>
+            <li><a href="#e-c2">👀 確認 画面表示の変化</a></li>
+            <li><a href="#e-4">手順4 変更箇所を選択</a></li>
+            <li><a href="#e-5">手順5 文言を編集</a></li>
+            <li><a href="#e-c3">👀 確認 キャンバス上の文言</a></li>
+            <li><a href="#e-c4">👀 確認 テスト環境で反映</a></li>
+            <li><a href="#e-tip">💡 ヒント 元に戻す</a></li>
+          </ol>
+        </li>
+        <li><a href="#section-5">5. アイビスに報告</a></li>
+      </ol>
+    </div>
+  </nav>
+
+  <!-- 右：本文 -->
+  <main class="article">
+    <div class="article-header">
+      <h1>Bubble編集ガイド</h1>
+      <div class="meta">最終更新：2026年7月29日</div>
+    </div>
+
+    <details class="chapter" id="section-1" open>
+      <summary><span class="num">01</span>初期表示<span class="chevron">▶</span></summary>
+      <div class="chapter-body">
+        <figure class="screenshot">
+          <img src="images/bubble_edit_guide/initial_view.png" alt="Bubbleエディタの初期表示画面">
+        </figure>
+      </details>
+    </details>
+
+    <details class="chapter" id="section-2" open>
+      <summary><span class="num">02</span>作業ブランチ切り替え<span class="chevron">▶</span></summary>
+      <div class="chapter-body">
+        <details class="step" id="b-1" open>
+          <summary class="step-title"><span class="step-badge">手順 1</span>画面右上の「Main」を選択<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/branch_switch_1.png" alt="右上の「Main」ボタンの位置">
+          </figure>
+        </details>
+
+        <details class="step" id="b-2" open>
+          <summary class="step-title"><span class="step-badge">手順 2</span>表示されたブランチ一覧から「dev」を選択<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/branch_switch_2.png" alt="ブランチ一覧から「dev」を選択">
+          </figure>
+        </details>
+
+        <details class="step" id="b-c1" open>
+          <summary class="step-title"><span class="check-badge">👀 確認</span>右上の表記が「Main / dev」になっていることを確認<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/branch_switch_3.png" alt="右上が「Main / dev」表記になった状態">
+          </figure>
+        </details>
+      </div>
+    </details>
+
+    <details class="chapter" id="section-3" open>
+      <summary><span class="num">03</span>画面対応表<span class="chevron">▶</span></summary>
+      <div class="chapter-body">
+        <p>
+          <strong style="color:#c0392b;">page（赤枠：Web Pages）</strong>は、URLを持つ1枚の画面です。<br>
+          <strong style="color:#0068B7;">ReusableElement（青枠：Web Reusables）</strong>は、複数のページで使い回す共通部品（サイドメニューやポップアップなど）です。ReusableElementを編集すると、それを使っているすべてのページに反映されます。
+        </p>
+        <figure class="screenshot">
+          <img src="images/bubble_edit_guide/page_vs_reusable.png" alt="App Manager上のWeb Pages（赤枠）とWeb Reusables（青枠）">
+        </figure>
+        <div class="table-wrap">
+          <table class="map">
+            <thead>
+              <tr>
+                <th>page</th>
+                <th>path</th>
+                <th>ReusableElement</th>
+                <th>機能一覧の対応項目</th>
+                <th>備考</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>index</code></td>
+                <td><code>/</code></td>
+                <td class="wrap">
+                  <div><code>signup/login</code>（アカウント認証）</div>
+                  <div><code>header</code>（共通ヘッダー）</div>
+                </td>
+                <td class="wrap"><span class="tag common">共通</span>アカウント認証（ログイン / 新規会員登録 / パスワード再設定メール送信）</td>
+                <td class="wrap">ページ自体はほぼ空のため、ログイン画面の編集は <code>signup/login</code> 側で行います。<code>?mode=sign_in / sign_up / reset_pw</code> で表示が切り替わります</td>
+              </tr>
+              <tr>
+                <td><code>confirm</code></td>
+                <td><code>/confirm</code></td>
+                <td class="wrap"><div><code>header</code>（共通ヘッダー）</div></td>
+                <td class="wrap"><span class="tag common">共通</span>アカウント認証（アカウント認証メール送信）</td>
+                <td class="wrap"></td>
+              </tr>
+              <tr>
+                <td><code>reset_pw</code></td>
+                <td><code>/reset_pw</code></td>
+                <td class="wrap"><div><code>header</code>（共通ヘッダー）</div></td>
+                <td class="wrap"><span class="tag common">共通</span>パスワード再設定</td>
+                <td class="wrap"></td>
+              </tr>
+              <tr>
+                <td><code>mypage</code></td>
+                <td><code>/mypage</code></td>
+                <td class="wrap"><div><code>sidebar</code>（サイドメニュー）</div></td>
+                <td class="wrap"><span class="tag user">利用者</span>アカウント情報変更（パスワード / メールアドレス再設定）</td>
+                <td class="wrap"></td>
+              </tr>
+              <tr>
+                <td><code>facility</code></td>
+                <td><code>/facility</code></td>
+                <td class="wrap"><div><code>sidebar</code>（サイドメニュー）</div></td>
+                <td class="wrap"><span class="tag user">利用者</span>企業情報（新規作成 / 編集）</td>
+                <td class="wrap"></td>
+              </tr>
+              <tr>
+                <td><code>design</code></td>
+                <td><code>/design</code></td>
+                <td class="wrap">
+                  <div><code>sidebar</code>（サイドメニュー）</div>
+                  <div><code>popup_create/update _event</code>（行事編集ポップアップ）</div>
+                  <div><code>popup_delete</code>（削除ポップアップ）</div>
+                </td>
+                <td class="wrap"><span class="tag user">利用者</span>原稿_一覧 / 詳細（年間行事一覧、行事編集・複製・削除、デザイン評価、原稿生成・DL など）</td>
+                <td class="wrap"></td>
+              </tr>
+              <tr>
+                <td><code>common_print</code></td>
+                <td><code>/common_print</code></td>
+                <td class="wrap">
+                  <div><code>sidebar</code>（サイドメニュー）</div>
+                  <div><code>side_menu_list</code>（サイドメニュー：項目一覧）</div>
+                </td>
+                <td class="wrap"><span class="tag user">利用者</span>共通印刷物_一覧 / 詳細（グループ一覧、共通印刷物一覧、ダウンロード）</td>
+                <td class="wrap"></td>
+              </tr>
+              <tr>
+                <td><code>admin_log</code></td>
+                <td><code>/admin_log</code></td>
+                <td class="wrap"><div><code>sidebar</code>（サイドメニュー）</div></td>
+                <td class="wrap"><span class="tag admin">管理者</span>ログ管理（年切り替え、月一覧、ダウンロードログDL、評価ログDL）</td>
+                <td class="wrap"></td>
+              </tr>
+              <tr>
+                <td><code>admin_d-temp</code></td>
+                <td><code>/admin_d-temp</code></td>
+                <td class="wrap">
+                  <div><code>sidebar</code>（サイドメニュー）</div>
+                  <div><code>popup_delete</code>（削除ポップアップ）</div>
+                </td>
+                <td class="wrap"><span class="tag admin">管理者</span>デザインテンプレート管理（一覧、新規作成、編集、削除、元データ一覧）</td>
+                <td class="wrap"></td>
+              </tr>
+              <tr>
+                <td><code>admin_prints</code></td>
+                <td><code>/admin_prints</code></td>
+                <td class="wrap">
+                  <div><code>sidebar</code>（サイドメニュー）</div>
+                  <div><code>popup_delete</code>（削除ポップアップ）</div>
+                </td>
+                <td class="wrap"><span class="tag admin">管理者</span>共通印刷物管理（一覧、新規作成、編集、削除）</td>
+                <td class="wrap"></td>
+              </tr>
+              <tr>
+                <td><code>admin_e-temp</code></td>
+                <td><code>/admin_e-temp</code></td>
+                <td class="wrap">
+                  <div><code>sidebar</code>（サイドメニュー）</div>
+                  <div><code>popup_delete</code>（削除ポップアップ）</div>
+                  <div><code>popup_select_design_temp</code>（デザインテンプレ選択）</div>
+                  <div><code>menu_foucus_facility_category</code>（業界メニュー）</div>
+                  <div><code>menu_foucus_facility_sub_category</code>（サブカテゴリメニュー）</div>
+                </td>
+                <td class="wrap"><span class="tag admin">管理者</span>業界 / 行事テンプレート管理（業界・テンプレートの一覧 / 作成 / 編集 / 削除 など）</td>
+                <td class="wrap"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <details class="chapter" id="section-4" open>
+      <summary><span class="num">04</span>編集方法<span class="chevron">▶</span></summary>
+      <div class="chapter-body">
+        <details class="step" id="e-1" open>
+          <summary class="step-title"><span class="step-badge">手順 1</span>画面左上のページ名（index）を選択<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/edit_1.png" alt="左上のページ選択でindexを選択">
+          </figure>
+        </details>
+
+        <details class="step" id="e-2" open>
+          <summary class="step-title"><span class="step-badge">手順 2</span>一覧から編集対象の画面を選択<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/edit_2.png" alt="App Managerから編集対象の画面を選択">
+          </figure>
+        </details>
+
+        <details class="step" id="e-c1" open>
+          <summary class="step-title"><span class="check-badge">👀 確認</span>左上の表示が選択した画面名に変わっていることを確認<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/edit_3.png" alt="左上の表示がdesignに変わった状態">
+          </figure>
+        </details>
+
+        <details class="step" id="e-3" open>
+          <summary class="step-title"><span class="step-badge">手順 3</span>目のマークが閉じている（非表示の）状態の場合は、選択して表示状態にする<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/edit_4.png" alt="Elements Treeで閉じた目のマークを選択して表示状態にする">
+          </figure>
+        </details>
+
+        <details class="step" id="e-c2" open>
+          <summary class="step-title"><span class="check-badge">👀 確認</span>Group main を展開して表示状態にすると、右側の画面表示が変わることを確認<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/edit_5.png" alt="Group mainを展開して表示状態にすると右のキャンバスが変わる">
+          </figure>
+        </details>
+
+        <details class="step" id="e-4" open>
+          <summary class="step-title"><span class="step-badge">手順 4</span>文言を変更したい箇所を選択<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/edit_6.png" alt="キャンバス上で文言を変更したいテキスト要素を選択">
+          </figure>
+        </details>
+
+        <details class="step" id="e-5" open>
+          <summary class="step-title"><span class="step-badge">手順 5</span>赤枠の入力欄で文言を編集する<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/edit_7.png" alt="Appearanceタブのテキスト入力欄を変更すると文言が変わる">
+          </figure>
+        </details>
+
+        <details class="step" id="e-c3" open>
+          <summary class="step-title"><span class="check-badge">👀 確認</span>キャンバス上の文言が変わっていることを確認<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/edit_8.png" alt="入力欄の変更がキャンバス上の文言に反映された状態">
+          </figure>
+        </details>
+
+        <details class="step" id="e-c4" open>
+          <summary class="step-title"><span class="check-badge">👀 確認</span>テスト環境で該当画面を開き、文言が変わっていることを確認<span class="chevron">▶</span></summary>
+          <div class="browser">
+            <div class="browser-bar">
+              <div class="browser-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+              <div class="browser-url"><span class="lock">🔒</span>https://brother-86284.bubbleapps.io/version-836sy/design</div>
+            </div>
+            <img src="images/bubble_edit_guide/edit_9.png" alt="テスト環境の画面で文言が変更されていることを確認">
+          </div>
+        </details>
+
+        <details class="step" id="e-tip" open>
+          <summary class="step-title"><span class="tip-badge">💡 ヒント</span>1つ前の操作に戻したいときは、画面上部の「元に戻す」ボタンを選択<span class="chevron">▶</span></summary>
+          <figure class="screenshot">
+            <img src="images/bubble_edit_guide/edit_undo.png" alt="ツールバーの元に戻すボタン">
+          </figure>
+        </details>
+      </div>
+    </details>
+
+    <details class="chapter" id="section-5" open>
+      <summary><span class="num">05</span>アイビスに報告<span class="chevron">▶</span></summary>
+      <div class="chapter-body">
+        <p>編集が完了したら、アイビスにメールでご連絡ください。<br>テキスト変更箇所以外に意図しない変更がないかを確認したうえで、POC環境へ反映します。</p>
+      </div>
+    </details>
+
+  </main>
+</div>
+
+<script>
+  // スクロール位置に応じて目次をハイライト
+  const links = document.querySelectorAll('nav.toc a');
+  const sections = document.querySelectorAll('details.chapter');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + entry.target.id));
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+
+  // 目次サイドバーの開閉（本文を全幅に）
+  document.getElementById('toc-toggle').addEventListener('click', () => {
+    document.body.classList.toggle('toc-collapsed');
+  });
+
+  // 目次クリック時は対象と、その親のdetailsをすべて開いてから移動
+  links.forEach(l => {
+    l.addEventListener('click', () => {
+      let target = document.querySelector(l.getAttribute('href'));
+      let node = target;
+      while (node) {
+        if (node.tagName === 'DETAILS') node.open = true;
+        node = node.parentElement;
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
