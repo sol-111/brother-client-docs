@@ -578,7 +578,7 @@ footer{text-align:center;padding:36px 0;color:var(--sub);font-size:12px;border-t
     </div>
     <h1>テンプレDL版から画像生成版への<br>切り替え設計</h1>
     <p class="lead">9月14日にテンプレートダウンロード版、10月5日に画像生成版をユーザーへ提供します。この切り替えを、当日の作業なしで自動的に成立させる方式をまとめました。動線の表示条件と、ページの入口をふさぐ条件に切替日時を仕込みます。その日時はDBの値で持ちます。</p>
-    <div class="hero-meta">最終更新 2026-09-10（実装レビューを更新。要対応を3件に）</div>
+    <div class="hero-meta">最終更新 2026-09-10（実装レビューを更新。要対応はすべて解消）</div>
   </div>
 </div>
 
@@ -678,35 +678,34 @@ footer{text-align:center;padding:36px 0;color:var(--sub);font-size:12px;border-t
 
   <div class="alert alert-red"><svg class="a-icon icon"><use href="#i-alert"/></svg><span><strong>リスク:</strong> サイドメニューの動線を隠しても、<code>/design</code> を直接開けば画像生成版に入れます。ブックマークや履歴からの再訪でも同じです。</span></div>
 
-  <p>design ページのリダイレクトは、もともと条件なしで常に動く作りでした。オプションセットの説明欄にある切り替え手順も「これを削除する」前提で書かれています。削除ではなく、1章と同じ条件を付ける形に置き換えます。</p>
+  <p>design ページのリダイレクトは、もともと条件なしで常に動く作りでした。オプションセットの説明欄にある切り替え手順も「これを削除する」前提で書かれています。削除ではなく、1章と同じ条件を付ける形に置き換えます。入口は2段で守ります。</p>
 
   <div class="table-wrap">
     <table>
       <thead><tr><th>対象</th><th>入れる条件</th><th>入れないと起きること</th></tr></thead>
       <tbody>
-        <tr><td class="label wrap">design の Page Load のリダイレクト</td><td><code>Current date/time &lt; 切替日時</code> のときだけ動かす</td><td>切替後もテンプレDL版へ飛ばされ続ける</td></tr>
-        <tr><td class="label wrap">生成の完了・失敗を見張る2つの処理<span class="td-sub">design の「Do when condition is true」2件。生成モニターを更新する</span></td><td><code>Current date/time &gt;= 切替日時</code> のときだけ動かす<span class="td-sub">上のリダイレクトとは逆向き。1章の行事一覧と同じ条件</span></td><td>リダイレクトが走る前に評価され、生成モニターのレコードが書き換わる</td></tr>
+        <tr><td class="label wrap">design のリダイレクト<span class="td-sub">「Do when condition is true」で動かす</span></td><td><code>Current date/time &lt; 切替日時</code> のときだけ動かす</td><td>切替後もテンプレDL版へ飛ばされ続ける</td></tr>
+        <tr><td class="label wrap">design のメイン要素<span class="td-sub">行事一覧とデザイン表示を含むグループ</span></td><td>既定を非表示にする。<code>Current date/time &gt; 切替日時</code> のときだけ表示する</td><td>リダイレクトが動かなかったときに、画像生成版の中身が見える</td></tr>
         <tr><td class="label wrap">design_temp 側</td><td><code>Current User's Created Date &gt; 切替日時</code> なら design へ飛ばす</td><td>切替後に登録したユーザーが、使えない画面に入る</td></tr>
       </tbody>
     </table>
   </div>
 
   <ul class="notes">
-    <li>この2つは画面を開いている間ずっと条件を見張る処理です。リダイレクトより先に評価される余地があります。画面は一瞬描画されるため、入口をふさぐ手段をリダイレクト1つに頼らないでください。</li>
+    <li>リダイレクトを Page Load ではなく「Do when condition is true」に置くのが要点です。Page Load は一度しか走りません。切替日時がまだ読めていない瞬間に評価されると、そのまま素通りします。</li>
+    <li>メイン要素の既定を非表示にしておくと、切替日時が読めないときは表示されない側に倒れます。リダイレクト1つに頼らないための2段目です。</li>
   </ul>
 
   <details class="dev-detail">
-    <summary>開発者向け: 条件を足す対象</summary>
+    <summary>開発者向け: 入口の実装と、条件を足さない処理</summary>
     <div class="dd-body">
-      <h5>条件を足す2つの処理の中身</h5>
-      <p>どちらも design ページの「Do when condition is true」（<code>run_when = every_time</code>）で、<code>design_generation_monitor</code> のリスト（要素 <code>bTScm0</code>）を見張っています。</p>
-      <ul>
-        <li><strong>生成の完了（<code>bTSdn0</code>）</strong> — 1件以上あるモニターの全件が COMPLETED になったときに走る。ローディングを隠す → 「デザイン生成が完了しました」を表示 → <code>ChangeListOfThings</code> でモニターの <code>deleted_at</code> に現在日時を入れる → custom state を初期化する。</li>
-        <li><strong>生成の失敗（<code>bTSdX0</code>）</strong> — モニターに FAILED が1件以上あるときに走る。ローディングを隠す → 「生成に失敗したサイズがあります」を表示 → 同じく <code>deleted_at</code> を入れる → custom state を初期化する。</li>
-      </ul>
-      <p>この2つには <code>Current date/time &gt;= 切替日時</code> を足してください。リダイレクトの条件は <code>&lt;</code>、こちらは <code>&gt;=</code> で向きが逆になります。切替後だけ動く処理にするためです。custom state を初期化しているだけの ConditionTrue も同じ条件で揃えておくと安全です。</p>
-      <h5>いま入口をふさいでいる場所</h5>
-      <p>design ページ（<code>bTKwz</code>）の PageLoaded に <code>ChangePage</code> が1アクションだけ入っています。遷移先は design_temp（<code>bTTvd</code>）です。9月10日の書き出しでは、ここに <code>Current Date/Time &lt; 切替日時</code> の条件が付いています。</p>
+      <h5>入口をふさいでいる場所</h5>
+      <p>design ページ（<code>bTKwz</code>）の ConditionTrue <code>bTUnh0</code>（<code>run_when = every_time</code>）が、<code>Current Date/Time &lt; Current User's switch_date's date</code> のときに design_temp（<code>bTTvd</code>）へ <code>ChangePage</code> します。PageLoaded の版は残っていません。</p>
+      <p>メイン要素は <code>is_visible: false</code> が既定です。<code>Current Date/Time &gt; Current User's switch_date's date</code> の条件で表示に切り替わります。</p>
+      <h5>生成の監視処理に条件を足さない理由</h5>
+      <p>design ページには生成の完了・失敗を見張る「Do when condition is true」が2件あります（完了 <code>bTSdn0</code> / 失敗 <code>bTSdX0</code>）。どちらも <code>design_generation_monitor</code> のリスト（<code>RG monitor</code>・要素 <code>bTScm0</code>）を見ています。条件が成立すると <code>ChangeListOfThings</code> でモニターの <code>deleted_at</code> を書き換えます。</p>
+      <p>ここに切替日時の条件は要りません。<code>RG monitor</code> は<strong>基本のデータソースを持たず、3つとも条件付き</strong>です（<code>is_dl_flag_</code> / <code>is_regenerate_</code> / <code>load_monitor_flag_</code>）。開いた直後はどの条件も成立しないため、リストは空で <code>count &gt;= 1</code> も成立しません。フラグを立てる操作は非表示のメイン要素の中にあるので、切替前には到達できません。</p>
+      <p>design_temp 側にも同じ名前の監視処理があります（<code>bTUid0</code> は filekey の取得状況を見るもの）。こちらは切替前に動く必要があるため、条件を足さないでください。</p>
       <h5>外部から直接呼べる経路</h5>
       <p>画像生成系の Backend Workflow（<code>trigger_generated_image</code> / <code>generated_image</code> / <code>parent_re_generated_image</code> など）は <code>expose = false</code> です。ページの入口をふさげば、生成を外から起動する経路は残りません。<code>expose = true</code> かつ認証不要は <code>email_duplication_check</code> と <code>change_email</code> の2本で、本件とは別に確認が必要です。</p>
       <h5>置き換える手順</h5>
@@ -762,11 +761,11 @@ footer{text-align:center;padding:36px 0;color:var(--sub);font-size:12px;border-t
   <ol class="steps">
     <li><span class="badge good">実装済み</span> 全体設定のデータ型に日時の項目を追加する。値は2026年10月5日 9時00分を入れる。</li>
     <li><span class="badge good">実装済み</span> サイドメニューの2本の動線に、1章の表示条件を設定する。どちらも同じ切替日時を参照していることを確認する。</li>
-    <li><span class="badge brand">未対応</span> 切替日時の参照を <code>Search for switch_date:first item's date</code> の直接参照へ変える。Current User 経由をやめる。空のときに動線が消える問題と、入口が開く問題を同時に防ぐ。</li>
-    <li><span class="badge good">実装済み</span> design の Page Load のリダイレクトに条件を追加する。削除はしない。</li>
-    <li><span class="badge brand">未対応</span> 生成の完了・失敗を見張る2つの処理に <code>Current date/time &gt;= 切替日時</code> を追加する。リダイレクトとは向きが逆になる。対象は design ページ側の2件だけで、design_temp 側の同名の処理には足さない。</li>
+    <li><span class="badge good">実装済み</span> 切替日時を利用者へ紐づける処理を、全画面共通のリユーザブルの「Do when condition is true」に置く。ログイン済みのセッションでも走る形にする。</li>
+    <li><span class="badge good">実装済み</span> design のリダイレクトを「Do when condition is true」に置き、条件を付ける。Page Load には置かない。</li>
+    <li><span class="badge good">実装済み</span> design のメイン要素の既定を非表示にする。切替日時を過ぎたときだけ表示する条件を付ける。</li>
     <li><span class="badge good">実装済み</span> Side_main_menu の2件の表示名を分ける。サイドメニューに同じ名前が並ばないことを確認する。</li>
-    <li><span class="badge brand">未対応</span> ページ名の変更にあわせ、<code>bubble_pages</code> の <code>design_ver_tempdl</code> を <code>design_temp</code> に直す。</li>
+    <li><span class="badge good">実装済み</span> ページ名の変更にあわせ、<code>bubble_pages</code> の該当値を <code>design_temp</code> に直す。</li>
     <li><span class="badge plain">未確認</span> 切替日時を過去の日時へ一時的に変更する。テスト環境で画像生成版の動線が表示されることを確認する。確認後は元の日時に戻す。</li>
     <li><span class="badge plain">未確認</span> 登録日が切替日時より後のテストユーザーを作る。デザインテンプレの動線が表示されないことを確認する。</li>
     <li><span class="badge plain">未確認</span> 切替日時の前後で、<code>/design</code> を直接開いたときの挙動を確認する。</li>
@@ -777,8 +776,7 @@ footer{text-align:center;padding:36px 0;color:var(--sub);font-size:12px;border-t
     <li>過去に API Gateway の Usage Plan の上限で429が発生しています。11番目は省略しないでください。</li>
     <li>8番目の確認はテスト環境で行ってください。本番の切替日時を動かすと、利用者の画面がその場で変わります。</li>
     <li>バッジは2026年9月10日の書き出しファイルで確認した状態です。内訳は5章にまとめました。</li>
-    <li>9月14日の提供に必須なのは、未対応のうち3番と7番です。あわせて本番反映前チェックの2つと、design_temp の画面が出ることの確認まで終わらせてください。</li>
-    <li>5番は9月14日から10月4日のあいだにだけ効く条件です。入れるならその前に入れてください。10月5日以降は効果がありません。</li>
+    <li>9月14日の提供までに残っているのは8番以降の確認と、本番反映前チェックの2つです。</li>
   </ul>
 
   <div class="sub-item">
@@ -802,10 +800,10 @@ footer{text-align:center;padding:36px 0;color:var(--sub);font-size:12px;border-t
 <div class="section" id="review">
   <div class="section-header">
     <div class="section-num">05</div>
-    <div class="sh-body"><h2>実装レビュー</h2><div class="sh-sub">2026年9月10日の書き出しファイルと突き合わせた結果</div></div>
+    <div class="sh-body"><h2>実装レビュー</h2><div class="sh-sub">書き出しファイルの突き合わせと、実機での確認結果</div></div>
   </div>
 
-  <p>条件の実装はおおむね資料どおりです。不等号の向きは4か所とも意図どおりでした。残っているのは3点です。1つ目はページ名の変更にともなう更新漏れで、9月14日の提供を止めうるものです。</p>
+  <p>条件の実装は資料どおりです。不等号の向きは4か所とも意図どおりでした。当初3件挙げた要対応は、いずれも実装側の作りと実機の確認で解消済みです。残っているのは確認だけです。</p>
 
   <div class="sub-item">
     <div class="kick">突き合わせ結果</div>
@@ -817,7 +815,9 @@ footer{text-align:center;padding:36px 0;color:var(--sub);font-size:12px;border-t
           <tr><td class="label wrap">切替日時をDBで持つ</td><td>データ型 <code>switch_date</code>（<code>date</code> フィールド）を追加。試作したオプションセット版は削除済み</td></tr>
           <tr><td class="label wrap">デザインテンプレの表示条件</td><td><code>Current User's Created Date &lt; Current User's switch_date's date</code></td></tr>
           <tr><td class="label wrap">行事一覧の表示条件</td><td><code>Current Date/Time &gt; Current User's switch_date's date</code></td></tr>
-          <tr><td class="label wrap">design の入口</td><td>Page Load のリダイレクトを削除せず、<code>Current Date/Time &lt; 切替日時</code> の条件付きにしている</td></tr>
+          <tr><td class="label wrap">切替日時の紐づけ</td><td>全画面共通のリユーザブルの ConditionTrue（<code>bTUqb0</code>）で、エンドユーザーの <code>switch_date</code> が空なら値を入れる。ログイン済みのセッションでも走る</td></tr>
+          <tr><td class="label wrap">design の入口</td><td>リダイレクトを ConditionTrue（<code>bTUnh0</code>・every_time）へ移した。条件は <code>Current Date/Time &lt; 切替日時</code>。Page Load の版は残っていない</td></tr>
+          <tr><td class="label wrap">design のメイン要素</td><td><code>is_visible: false</code> が既定。<code>Current Date/Time &gt; 切替日時</code> のときだけ表示する</td></tr>
           <tr><td class="label wrap">design_temp 側の扱い</td><td>LoggedIn に「<code>Current User's Created Date &gt; 切替日時</code> なら design へ飛ばす」を追加。新規ユーザーはテンプレ画面に入らない</td></tr>
           <tr><td class="label wrap">メニュー名の重複</td><td>旧「行事一覧（design_ver_tempdl）」を削除。既存の「デザインテンプレ」を管理者・エンドユーザー共用に統合。<code>enduser_index</code> も 1 から 4 に整理</td></tr>
         </tbody>
@@ -825,46 +825,43 @@ footer{text-align:center;padding:36px 0;color:var(--sub);font-size:12px;border-t
     </div>
   </div>
 
-  <div class="alert alert-red"><svg class="a-icon icon"><use href="#i-alert"/></svg><span><strong>リスク:</strong> ページ名の変更にあわせた <code>bubble_pages</code> の更新が抜けています。design_temp の画面が表示されない可能性があります。</span></div>
-
   <div class="sub-item">
-    <div class="kick">要対応 1</div>
-    <h4>bubble_pages が旧ページ名のままで、design_temp の画面が出ない</h4>
-    <p>各ページは、URLのパスセグメントと <code>bubble_pages</code> の表示名の一致で、自分のページ定義を引いています。引いた定義は共通部品 global の引数として渡され、ログイン要否・メール確認要否・権限の判定に使われます。</p>
-    <p><code>bubble_pages</code> の値は <code>design_ver_tempdl</code> のままです。ページ名は <code>design_temp</code> に変わったため、突き合わせが一致しません。定義が空のまま global に渡ります。</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>効かなくなるもの</th><th>起きること</th></tr></thead>
-        <tbody>
-          <tr><td class="label wrap">画面の表示制御</td><td>global の <code>is_display_visible</code> が true にならない。本文のグループ「Group Event And Desgin」は、この値が true のときだけ表示される。<strong>画面が空のまま出る</strong></td></tr>
-          <tr><td class="label wrap">未ログイン時のリダイレクト</td><td><code>public_ is true</code> の分岐が成立せず、ログイン画面へ飛ばない</td></tr>
-          <tr><td class="label wrap">メール確認のガード</td><td><code>need_mail_confirmation</code> の分岐が成立せず、確認前でも素通りする</td></tr>
-          <tr><td class="label wrap">権限による振り分け</td><td><code>role_branch_action</code> が走らない</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>対応は <code>bubble_pages</code> の該当値の表示名と db_value を <code>design_temp</code> に直すことです。ページ名を <code>design_ver_tempdl</code> に戻す選択もあります。どちらにしても、9月14日の提供前に実機で画面が出ることを確認してください。</p>
+    <div class="kick">対応不要と確認</div>
+    <h4>bubble_pages の突き合わせは成立している</h4>
+    <p>各ページは、URLのパスセグメントと <code>bubble_pages</code> の表示名の一致で、自分のページ定義を引いています。引いた定義は共通部品 global の引数として渡され、未ログイン時のリダイレクトと権限による振り分けに使われます。</p>
+    <p>当初は「ページ名が <code>design_temp</code> に変わったのに <code>bubble_pages</code> の値が <code>design_ver_tempdl</code> のままで、定義が空になる」と指摘しました。実機で確認したところ、ログアウト状態で <code>/design_temp</code> を開くとログイン画面へ飛びました。この分岐は「定義の <code>public_</code> が true のとき」に走るため、飛んだ時点で定義は引けています。2026年9月10日 19時06分の書き出しに入っていなかったのは、その後に直したためです。</p>
+    <div class="alert alert-blue"><svg class="a-icon icon"><use href="#i-info"/></svg><span><strong>判定のしかた:</strong> 画面が出たかどうかでは判定できません。表示は別の条件でも成立します。ログアウト状態で開いてログイン画面へ飛ぶかどうかで見てください。</span></div>
+    <p>あわせて分かった点があります。<code>need_mail_confirmation</code> は、メール未確認のユーザーを弾く条件では<strong>ありません</strong>。<code>true</code> のときは「メール確認済みで権限が合わないユーザーだけ、権限による振り分けを走らせる」という使われ方です。未確認のユーザーはどちらの分岐も通りません。confirm へ移るのは新規登録とメールアドレス変更の直後だけです。</p>
   </div>
 
   <div class="sub-item">
-    <div class="kick">要対応 2</div>
-    <h4>切替日時が空のときの逃げ道がない</h4>
-    <p>条件がすべて <code>Current User's switch_date</code> を経由します。この項目を埋めているのは共通部品 global の「User is logged in」1か所だけで、走る条件は「<code>role = エンドユーザー</code> かつ <code>switch_date</code> が空」です。</p>
-    <p>まだ紐付いていないユーザーでは、サイドバーのデザインテンプレも行事一覧も条件が成立しません。動線が1本も出ない状態になります。design の Page Load も同じ理由で「<code>Current Date/Time &lt; 空</code>」が成立せず、リダイレクトが走りません。</p>
-    <p>サイドバーには <code>is empty</code> の逃げ道が1つもありません（実測0件）。条件を <code>Search for switch_date:first item's date</code> の直接参照へ変えるか、空のときの分岐を足してください。少なくとも Page Load のリダイレクトは「空なら飛ばす」に変えてください。フェイルセーフ側へ倒します。</p>
-    <p><strong>直接参照へ変えるほうを推奨します。</strong>User を経由しなくなるため、次の2つも同時に解消します。ログイン毎のDB書き込みも不要になります。</p>
+    <div class="kick">対応不要と確認</div>
+    <h4>切替日時が空になるケースは塞がっている</h4>
+    <p>当初は「条件がすべて <code>Current User's switch_date</code> を経由するため、空のときに動線が消えて入口も開く」と指摘しました。実装側の3つの作りで解消済みです。実機の確認も済んでいます。</p>
     <ul>
-      <li>「User is logged in」がすでにログイン済みのセッションで発火しない場合、既存ユーザーは次のログインまで動線が消える</li>
-      <li>紐付け処理は <code>role = エンドユーザー</code> のみのため、管理者は <code>switch_date</code> が空のままになる</li>
+      <li>紐づけ処理が全画面共通のリユーザブルの ConditionTrue にあるため、ページを開けば走る。エンドユーザーで空のまま残ることがない</li>
+      <li>リダイレクトが ConditionTrue（every_time）のため一度きりでない。値が入った時点で後追いで発火する</li>
+      <li>メイン要素が既定で非表示のため、値が読めないときは表示されない側に倒れる</li>
     </ul>
-    <p>User 経由の作りを残す場合は、この2点を実機で確認してください。</p>
+    <p>毎回 Search を走らせない判断も妥当です。管理者は日付による制限を受けないため、紐づけの対象外でよいことも確認しました。</p>
   </div>
 
   <div class="sub-item">
-    <div class="kick">要対応 3</div>
-    <h4>生成の完了・失敗を見張る2つの処理に条件が入っていない</h4>
-    <p><code>bTSdX0</code>（失敗の検知）と <code>bTSdn0</code>（完了の検知）の条件に <code>switch_date</code> が含まれていません。2章の表の2行目が未対応です。切替前に <code>/design</code> を直接開かれた場合、リダイレクトより先に評価されて生成モニターの <code>deleted_at</code> が書き換わる余地が残ります。足す条件は <code>Current date/time &gt;= 切替日時</code> です。リダイレクト側とは向きが逆になる点に注意してください。</p>
-    <div class="alert alert-red"><svg class="a-icon icon"><use href="#i-alert"/></svg><span><strong>リスク:</strong> design_temp にも同じ作りの処理が2件あります（ワークフローIDまで同じ）。こちらは切替前に動く必要があるため、条件を足すとテンプレDL版のダウンロード完了の通知が出なくなります。対象は design ページ側だけです。</span></div>
+    <div class="kick">対応不要と確認</div>
+    <h4>生成の監視処理に条件は要らない</h4>
+    <p>当初は「生成の完了・失敗を見張る2つの処理（<code>bTSdn0</code> / <code>bTSdX0</code>）がリダイレクトより先に評価され、生成モニターの <code>deleted_at</code> が書き換わる」と指摘しました。こちらも要りません。</p>
+    <p><code>RG monitor</code>（要素 <code>bTScm0</code>）は基本のデータソースを持たず、3つとも条件付きです（<code>is_dl_flag_</code> / <code>is_regenerate_</code> / <code>load_monitor_flag_</code>）。開いた直後はどの条件も成立しないため、リストは空で <code>count &gt;= 1</code> も成立しません。フラグを立てる操作は非表示のメイン要素の中にあるので、切替前には到達できません。</p>
+    <p>design_temp 側の同名の処理も、条件を足す対象ではありません。<code>bTUid0</code> は filekey の取得状況を見るもので、こちらは切替前に動く必要があります。</p>
+  </div>
+
+  <div class="sub-item">
+    <div class="kick">9月14日まで</div>
+    <h4>修正と同格で確認する2つ</h4>
+<p>修正はすべて入りました。残っているのは確認だけです。どちらも欠けると9月14日の提供が成立しません。</p>
+    <ol class="steps">
+      <li>オプションセット <code>bubble_pages</code> の該当値の表示名が <code>design_temp</code> になっていることを目視で確認する。ログアウト状態のリダイレクトが動いているため成立している見込みだが、値そのものを1度見ておく。</li>
+      <li>本番のデータに <code>switch_date</code> の行があることを確認する。作業の手順と注意点は4章の本番反映前チェックにまとめた。</li>
+    </ol>
   </div>
 
   <div class="sub-item">
@@ -886,13 +883,13 @@ footer{text-align:center;padding:36px 0;color:var(--sub);font-size:12px;border-t
   <div class="sub-item">
     <div class="kick">今回は見送る</div>
     <h4>生成モニターの後始末をサーバ側へ移す</h4>
-    <p>生成モニターを片づけているのは、いまブラウザ側の2つの処理だけです。バックエンドでは一度も書いていません（実測）。タブを閉じるとレコードが残ります。次に同じ行事を開いたときに、やってもいない生成の完了通知が出ます。</p>
-    <p>本来は <code>call_polling</code> が全件の完了を検知したところでサーバ側に片づけさせ、画面は表示だけを担うのが筋です。そうなれば、この2つはDBに書かない処理になるため要対応3も不要になります。今回は要対応3で回避できます。恒久対応として別に積んでください。</p>
+    <p>生成モニターを片づけているのは、いまブラウザ側の2つの処理だけです。バックエンドでは一度も書いていません（実測）。タブを閉じるとレコードが残ります。次に同じ行事を開いて生成を始めたときに、前回の残骸を拾う余地があります。</p>
+    <p>本来は <code>call_polling</code> が全件の完了を検知したところでサーバ側に片づけさせ、画面は表示だけを担うのが筋です。切替の設計とは別の話なので、恒久対応として積んでください。</p>
   </div>
 
   <ul class="notes">
     <li>ページ名が design_ver_tempdl から design_temp に変わりました。URLが変わるため、運用手順書の記載も追従が必要です。データ型にも design_temp があるので、名前が重なる点は社内で認識を合わせてください。</li>
-    <li>この章は2026年9月10日 13時22分に書き出したファイルを読んだ結果です。</li>
+    <li>この章は2026年9月10日 19時06分に書き出したファイルと、実機での確認結果によります。対応不要とした3件は、エンジニアからの報告とあわせて確認しました。</li>
   </ul>
 </div>
 
@@ -925,7 +922,7 @@ footer{text-align:center;padding:36px 0;color:var(--sub);font-size:12px;border-t
 </div>
 
 <!-- 元データ: brother-86284.bubble（2026-09-08 書き出し）/ documents/1_meeting_minutes/議事録_ゼロイチスタート_定例会_20260820.pdf -->
-<footer>正本: brother-86284.bubble（2026-09-10 書き出し）・議事録 2026-08-20</footer>
+<footer>正本: brother-86284.bubble（2026-09-10 19:06 書き出し）・議事録 2026-08-20</footer>
 
 <script>
 (function(){
